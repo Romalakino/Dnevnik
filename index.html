@@ -585,4 +585,21 @@
             saveHomeworkData(homeworkData);
         }
 
-        // Навигация п
+        // Навигация по неделям
+        document.getElementById('prevWeek').addEventListener('click', () => {
+            currentDate.setDate(currentDate.getDate() - 7);
+            updateUI();
+        });
+        
+        document.getElementById('nextWeek').addEventListener('click', () => {
+            currentDate.setDate(currentDate.getDate() + 7);
+            updateUI();
+        });
+
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            updateUI();
+        });
+    </script>
+</body>
+</html>
