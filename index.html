@@ -1,445 +1,588 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Электронный дневник</title>
-  <style>
-    /* Общий стиль */
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-    
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-      background: linear-gradient(180deg, #1e1e2f, #2a2a40);
-      color: #fff;
-      overflow-x: hidden;
-      touch-action: manipulation;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Электронный дневник 8ICL</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-    header {
-      background: linear-gradient(135deg, #4facfe, #9d50bb);
-      padding: 1rem;
-      text-align: center;
-      color: white;
-      font-size: 1.6rem;
-      font-weight: bold;
-      border-bottom-left-radius: 16px;
-      border-bottom-right-radius: 16px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.4);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
+        :root {
+            --primary: #4a6bff;
+            --secondary: #7b68ee;
+            --accent: #6a5acd;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --gray: #6c757d;
+        }
 
-    .days {
-      display: flex;
-      overflow-x: auto;
-      background: #2f2f47;
-      padding: 0.5rem;
-      box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3);
-      -webkit-overflow-scrolling: touch;
-    }
+        body {
+            background: linear-gradient(135deg, #e0e7ff 0%, #d1e0fd 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-    .days::-webkit-scrollbar {
-      display: none;
-    }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }
 
-    .day {
-      flex: 0 0 auto;
-      min-width: 120px;
-      text-align: center;
-      padding: 0.6rem;
-      margin: 0 0.3rem;
-      border-radius: 12px;
-      background: #3a3a55;
-      color: #ccc;
-      font-weight: 600;
-      cursor: pointer;
-      transition: 0.3s;
-      white-space: nowrap;
-    }
-    .day.active {
-      background: linear-gradient(135deg, #4facfe, #9d50bb);
-      color: white;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-    }
+        header {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
 
-    .schedule {
-      padding: 1rem;
-      padding-bottom: 8rem;
-    }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
 
-    .lesson {
-      background: #3a3a55;
-      margin-bottom: 0.8rem;
-      padding: 1rem;
-      border-radius: 14px;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-      position: relative;
-      transition: 0.3s;
-    }
-    .lesson h4 {
-      margin: 0 0 0.4rem 0;
-      font-size: 1.05rem;
-    }
-    .lesson small {
-      color: #aaa;
-    }
+        .date-display {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-top: 10px;
+        }
 
-    .lesson.edit-mode {
-      background: #50506d;
-    }
+        .week-nav {
+            display: flex;
+            justify-content: space-between;
+            background: #f0f4ff;
+            padding: 15px 25px;
+            border-bottom: 2px solid #dde2ff;
+            align-items: center;
+        }
 
-    .edit-checkbox {
-      position: absolute;
-      top: 10px;
-      right: 12px;
-      width: 20px;
-      height: 20px;
-      accent-color: #4facfe;
-      transform: scale(1.3);
-      cursor: pointer;
-    }
+        .week-range {
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 1.1rem;
+        }
 
-    .hidden {
-      display: none !important;
-    }
+        .nav-btns {
+            display: flex;
+            gap: 12px;
+        }
 
-    /* Нижняя панель */
-    .action-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      background: #1e1e2f;
-      padding: 0.6rem 0.4rem;
-      box-shadow: 0 -3px 8px rgba(0,0,0,0.4);
-      z-index: 999;
-    }
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
 
-    .action-btn {
-      flex: 1;
-      margin: 0 0.25rem;
-      border: none;
-      border-radius: 12px;
-      padding: 0.7rem;
-      font-weight: 600;
-      font-size: 0.9rem;
-      color: white;
-      cursor: pointer;
-      transition: 0.2s;
-      text-align: center;
-      white-space: nowrap;
-      -webkit-user-select: none;
-      user-select: none;
-    }
+        .btn-primary {
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            color: white;
+        }
 
-    .edit-btn { background: linear-gradient(135deg,#4facfe,#00f2fe); }
-    .delete-btn { background: #e74c3c; }
-    .add-btn { background: #27ae60; }
-    .reset-btn { background: #7f8c8d; }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
 
-    .action-btn:active { 
-      transform: scale(0.95); 
-      opacity: 0.9;
-    }
+        .days-tabs {
+            display: flex;
+            background: #e9ecff;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 0 15px;
+            border-bottom: 2px solid #dde2ff;
+        }
 
-    /* Модальное окно */
-    .modal {
-      position: fixed;
-      top: 0; 
-      left: 0;
-      width: 100%; 
-      height: 100%;
-      background: rgba(0,0,0,0.6);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-      padding: 1rem;
-    }
-    
-    .modal-content {
-      background: #2f2f47;
-      padding: 1.2rem;
-      border-radius: 16px;
-      width: 100%;
-      max-width: 500px;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-      color: white;
-    }
-    
-    .modal-content h3 {
-      margin-top: 0;
-      margin-bottom: 1rem;
-    }
-    
-    .modal-input {
-      width: 100%;
-      padding: 0.8rem;
-      margin: 0.5rem 0;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      background: #3a3a55;
-      color: white;
-    }
-    
-    textarea.modal-input { 
-      resize: vertical; 
-      min-height: 100px;
-    }
+        .days-tabs::-webkit-scrollbar {
+            display: none;
+        }
 
-    .close-btn {
-      background: #e74c3c;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      color: white;
-      cursor: pointer;
-      margin-top: 1rem;
-      float: right;
-    }
+        .day-tab {
+            padding: 16px 24px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-align: center;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 130px;
+            border-bottom: 3px solid transparent;
+            color: var(--gray);
+            position: relative;
+        }
 
-    /* Адаптивность */
-    @media (max-width: 480px) {
-      header {
-        font-size: 1.3rem;
-        padding: 0.8rem;
-      }
-      
-      .day {
-        min-width: 100px;
-        padding: 0.5rem;
-        font-size: 0.9rem;
-      }
-      
-      .action-btn {
-        padding: 0.6rem;
-        font-size: 0.8rem;
-      }
-    }
-  </style>
+        .day-tab.active {
+            background: white;
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .day-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--primary);
+        }
+
+        .schedule {
+            padding: 25px;
+        }
+
+        .schedule-title {
+            font-size: 1.6rem;
+            color: var(--dark);
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .lessons-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        .lesson-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-left: 5px solid var(--primary);
+        }
+
+        .lesson-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .lesson-number {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-weight: bold;
+            color: #e0e7ff;
+            font-size: 1.4rem;
+        }
+
+        .lesson-name {
+            font-weight: 700;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+
+        .lesson-teacher {
+            color: var(--gray);
+            font-size: 1rem;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+
+        .homework-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .homework-label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #444;
+            font-size: 1.1rem;
+        }
+
+        .homework-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e7ff;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            margin-bottom: 15px;
+            background: #f9faff;
+        }
+
+        .homework-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+        }
+
+        .completed-section {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 600;
+            color: #444;
+            font-size: 1rem;
+        }
+
+        .checkbox-input {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+            accent-color: var(--success);
+            cursor: pointer;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 0;
+            color: var(--gray);
+            grid-column: 1 / -1;
+        }
+
+        .empty-state i {
+            font-size: 4.5rem;
+            margin-bottom: 20px;
+            color: #dde2ff;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: var(--dark);
+            margin-top: auto;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .lessons-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .days-tabs {
+                flex-wrap: wrap;
+            }
+            
+            .day-tab {
+                min-width: calc(50% - 10px);
+                margin-bottom: 5px;
+            }
+            
+            .week-nav {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .nav-btns {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
 </head>
 <body>
-  <header>📘 Электронный дневник</header>
-  <div class="days" id="days"></div>
-  <div class="schedule" id="schedule"></div>
-
-  <!-- Панель кнопок -->
-  <div class="action-bar">
-    <button id="editBtn" class="action-btn edit-btn">✏️ Редактировать</button>
-    <button id="deleteBtn" class="action-btn delete-btn hidden">🗑 Удалить</button>
-    <button id="addBtn" class="action-btn add-btn hidden">➕ Добавить</button>
-    <button id="resetBtn" class="action-btn reset-btn">♻️ Сброс</button>
-  </div>
-
-  <!-- Модальное окно -->
-  <div class="modal" id="modal">
-    <div class="modal-content">
-      <h3 id="modalTitle"></h3>
-      <textarea id="homework" class="modal-input" placeholder="Домашнее задание"></textarea>
-      <input type="date" id="deadline" class="modal-input">
-      <input type="number" id="grade" class="modal-input" placeholder="Оценка (необязательно)" min="1" max="5">
-      <div style="display: flex; justify-content: space-between; margin-top: 1rem;">
-        <button class="close-btn" onclick="closeModal()">Закрыть</button>
-        <button class="action-btn edit-btn" onclick="saveLesson()">Сохранить</button>
-      </div>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-book"></i> Электронный дневник 8ICL</h1>
+            <div class="date-display" id="currentDate">Понедельник, 12 июня 2023</div>
+        </header>
+        
+        <div class="week-nav">
+            <div class="week-range" id="weekRange">Неделя: 12 июня - 18 июня 2023</div>
+            <div class="nav-btns">
+                <button class="btn btn-primary" id="prevWeek"><i class="fas fa-chevron-left"></i> Предыдущая</button>
+                <button class="btn btn-primary" id="nextWeek">Следующая <i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+        
+        <div class="days-tabs" id="daysTabs">
+            <!-- Вкладки дней будут добавляться через JavaScript -->
+        </div>
+        
+        <div class="schedule">
+            <h2 class="schedule-title" id="scheduleTitle">Расписание на понедельник</h2>
+            
+            <div class="lessons-container" id="lessonsContainer">
+                <!-- Уроки будут добавляться через JavaScript -->
+            </div>
+        </div>
     </div>
-  </div>
+    
+    <footer>
+        <p>Электронный дневник 8ICL © 2023 | Домашние задания сохраняются автоматически</p>
+    </footer>
 
-  <script>
-    // Основные переменные
-    const daysOfWeek = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
+    <script>
+        // Фиксированное расписание для 8ICL (без татарского языка, с одним трудом)
+        const fixedSchedule = {
+            "Понедельник": [
+                { number: 1, name: "Родной русский язык", teacher: "Валиуллина А. И." },
+                { number: 2, name: "Химия", teacher: "Юсупова А. Г." },
+                { number: 3, name: "Английский язык", teacher: "Кузнецова Н. В." },
+                { number: 4, name: "Английский язык", teacher: "Кузнецова Н. В." },
+                { number: 5, name: "География", teacher: "Чеховская Е. П." },
+                { number: 6, name: "Биология", teacher: "Якупов Ч. Б." }
+            ],
+            "Вторник": [
+                { number: 1, name: "Родной русский язык", teacher: "Валиуллина А. И." },
+                { number: 2, name: "Русский язык", teacher: "Вагапова А. Р." },
+                { number: 3, name: "Физика", teacher: "Галимуллин Н. Р." },
+                { number: 4, name: "Английский язык", teacher: "Кузнецова Н. В." },
+                { number: 5, name: "Вероятность и статистика", teacher: "Идиятуллина А. М." },
+                { number: 6, name: "Химия", teacher: "Юсупова А. Г." }
+            ],
+            "Среда": [
+                { number: 1, name: "История", teacher: "" },
+                { number: 2, name: "Литература", teacher: "Вагапова А. Р." },
+                { number: 3, name: "Английский язык", teacher: "Кузнецова Н. В." },
+                { number: 4, name: "Алгебра", teacher: "Идиятуллина А. М." },
+                { number: 5, name: "Биология", teacher: "Якупов Ч. Б." },
+                { number: 6, name: "Геометрия", teacher: "Идиятуллина А. М." }
+            ],
+            "Четверг": [
+                { number: 1, name: "Родной русский язык", teacher: "Валиуллина А. И." },
+                { number: 2, name: "Русский язык", teacher: "Вагапова А. Р." },
+                { number: 3, name: "Английский язык", teacher: "Кузнецова Н. В." },
+                { number: 4, name: "Физика", teacher: "Галимуллин Н. Р." },
+                { number: 5, name: "Обществознание", teacher: "Башкирова Л. М." },
+                { number: 6, name: "География", teacher: "Чеховская Е. П." },
+                { number: 7, name: "Труд", teacher: "Турсунов О. А." }
+            ],
+            "Пятница": [
+                { number: 1, name: "Литература", teacher: "" },
+                { number: 2, name: "Русский язык", teacher: "Вагапова А. Р." },
+                { number: 3, name: "Физкультура", teacher: "Бетишев А. А." },
+                { number: 4, name: "История", teacher: "Башкирова Л. М." },
+                { number: 5, name: "Алгебра", teacher: "Идиятуллина А. М." },
+                { number: 6, name: "Геометрия", teacher: "Идиятуллина А. М." }
+            ],
+            "Суббота": [
+                { number: 1, name: "Музыка", teacher: "" },
+                { number: 2, name: "ОБЖ", teacher: "Ахмедшин Р. Г." },
+                { number: 3, name: "Алгебра", teacher: "Идиятуллина А. М." },
+                { number: 4, name: "Информатика", teacher: "Галимуллин Н. Р." },
+                { number: 5, name: "Физкультура", teacher: "Бетишев А. А." }
+            ]
+        };
 
-    const defaultSchedule = {
-      "Понедельник": [
-        {name: "Гос. язык Татарстан", teacher: "Яруллина Г.Р."},
-        {name: "Родной русский", teacher: "Валиуллина А.И."},
-        {name: "Химия", teacher: "Юсупова А.Г."}
-      ],
-      "Вторник": [
-        {name: "Русский язык", teacher: "Вагапова А.Р."},
-        {name: "Физика", teacher: "Галимуллин Н.Р."}
-      ],
-      "Среда": [],
-      "Четверг": [],
-      "Пятница": [],
-      "Суббота": []
-    };
+        // Текущая дата и день
+        let currentDate = new Date();
+        let currentDay = currentDate.getDay();
+        currentDay = currentDay === 0 ? 6 : currentDay - 1; // Воскресенье (0) -> 6, Понедельник (1) -> 0
 
-    let scheduleData = JSON.parse(localStorage.getItem("schedule")) || JSON.parse(JSON.stringify(defaultSchedule));
-    let currentDay = new Date().getDay() - 1;
-    currentDay = currentDay < 0 ? 0 : currentDay; // Если воскресенье, показываем понедельник
-    currentDay = daysOfWeek[currentDay];
-    let editMode = false;
-    let currentLessonIndex = null;
+        // Дни недели
+        const daysOfWeek = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 
-    // Инициализация
-    document.addEventListener('DOMContentLoaded', function() {
-      initApp();
-    });
-
-    function initApp() {
-      // Назначаем обработчики событий
-      document.getElementById('editBtn').addEventListener('click', toggleEditMode);
-      document.getElementById('deleteBtn').addEventListener('click', deleteSelected);
-      document.getElementById('addBtn').addEventListener('click', addLesson);
-      document.getElementById('resetBtn').addEventListener('click', resetData);
-      
-      // Закрытие модального окна по клику вне его
-      document.getElementById('modal').addEventListener('click', function(e) {
-        if (e.target === this) closeModal();
-      });
-      
-      renderDays();
-      renderSchedule();
-    }
-
-    function renderDays(){
-      const daysContainer = document.getElementById("days");
-      daysContainer.innerHTML = "";
-      daysOfWeek.forEach(day => {
-        const div = document.createElement("div");
-        div.className = "day" + (day === currentDay ? " active" : "");
-        div.textContent = day;
-        div.addEventListener('click', () => {
-          currentDay = day; 
-          renderDays(); 
-          renderSchedule();
-        });
-        daysContainer.appendChild(div);
-      });
-    }
-
-    function renderSchedule(){
-      const container = document.getElementById("schedule");
-      container.innerHTML = "";
-      
-      if (scheduleData[currentDay].length === 0) {
-        container.innerHTML = '<div class="lesson"><h4>Нет уроков</h4><small>Добавьте уроки через режим редактирования</small></div>';
-        return;
-      }
-      
-      scheduleData[currentDay].forEach((lesson, i) => {
-        const div = document.createElement("div");
-        div.className = "lesson" + (editMode ? " edit-mode" : "");
-        
-        let lessonHTML = `<h4>${i+1}. ${lesson.name}</h4>`;
-        if (lesson.teacher) lessonHTML += `<small>${lesson.teacher}</small>`;
-        if (lesson.homework) lessonHTML += `<br><small>ДЗ: ${lesson.homework}</small>`;
-        if (lesson.deadline) lessonHTML += `<br><small>Срок: ${formatDate(lesson.deadline)}</small>`;
-        if (lesson.grade) lessonHTML += `<br><small>Оценка: ${lesson.grade}</small>`;
-        
-        div.innerHTML = lessonHTML;
-        
-        if(editMode){
-          const checkbox = document.createElement("input");
-          checkbox.type = "checkbox";
-          checkbox.className = "edit-checkbox";
-          checkbox.dataset.index = i;
-          div.appendChild(checkbox);
-        } else {
-          div.addEventListener('click', () => openModal(i));
+        // Функция для получения номера недели в году
+        function getWeekNumber(date) {
+            const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+            const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+            return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
         }
-        container.appendChild(div);
-      });
-    }
 
-    function formatDate(dateString) {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return date.toLocaleDateString('ru-RU');
-    }
+        // Функция для получения дат начала и конца недели
+        function getWeekRange(date) {
+            const dayOfWeek = date.getDay();
+            const startDate = new Date(date);
+            startDate.setDate(date.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+            
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 6);
+            
+            return {
+                start: startDate,
+                end: endDate
+            };
+        }
 
-    function toggleEditMode(){
-      editMode = !editMode;
-      document.getElementById("deleteBtn").classList.toggle("hidden", !editMode);
-      document.getElementById("addBtn").classList.toggle("hidden", !editMode);
-      document.getElementById("editBtn").textContent = editMode ? "✅ Готово" : "✏️ Редактировать";
-      renderSchedule();
-    }
+        // Функция для форматирования даты
+        function formatDate(date) {
+            const options = { day: 'numeric', month: 'long', year: 'numeric' };
+            return date.toLocaleDateString('ru-RU', options);
+        }
 
-    function deleteSelected(){
-      const checkboxes = document.querySelectorAll(".edit-checkbox:checked");
-      if (checkboxes.length === 0) {
-        alert("Выберите уроки для удаления");
-        return;
-      }
-      
-      if(!confirm(`Удалить ${checkboxes.length} выбранных уроков?`)) return;
-      
-      const indices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.index));
-      // Удаляем в обратном порядке, чтобы индексы не сбивались
-      indices.sort((a, b) => b - a).forEach(index => {
-        scheduleData[currentDay].splice(index, 1);
-      });
-      
-      localStorage.setItem("schedule", JSON.stringify(scheduleData));
-      renderSchedule();
-    }
+        // Функция для получения ключа для localStorage
+        function getStorageKey() {
+            const weekNumber = getWeekNumber(currentDate);
+            return `homework_${currentDate.getFullYear()}_${weekNumber}`;
+        }
 
-    function addLesson(){
-      const name = prompt("Введите название урока:");
-      if(!name) return;
-      const teacher = prompt("Введите учителя (необязательно):") || "";
-      scheduleData[currentDay].push({name, teacher});
-      localStorage.setItem("schedule", JSON.stringify(scheduleData));
-      renderSchedule();
-    }
+        // Загрузка данных из localStorage
+        function loadHomeworkData() {
+            const key = getStorageKey();
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : {};
+        }
 
-    function resetData(){
-      if(confirm("Сбросить всё расписание к начальному состоянию? Все ваши данные будут удалены.")){
-        scheduleData = JSON.parse(JSON.stringify(defaultSchedule));
-        localStorage.setItem("schedule", JSON.stringify(scheduleData));
-        renderDays();
-        renderSchedule();
-      }
-    }
+        // Сохранение данных в localStorage
+        function saveHomeworkData(data) {
+            const key = getStorageKey();
+            localStorage.setItem(key, JSON.stringify(data));
+        }
 
-    function openModal(index){
-      currentLessonIndex = index;
-      const lesson = scheduleData[currentDay][index];
-      document.getElementById("modalTitle").textContent = lesson.name;
-      document.getElementById("homework").value = lesson.homework || "";
-      document.getElementById("deadline").value = lesson.deadline || "";
-      document.getElementById("grade").value = lesson.grade || "";
-      document.getElementById("modal").style.display = "flex";
-    }
+        // Обновление интерфейса
+        function updateUI() {
+            updateDate();
+            renderDaysTabs();
+            renderLessons();
+        }
 
-    function closeModal(){
-      document.getElementById("modal").style.display = "none";
-    }
+        // Обновление отображения даты
+        function updateDate() {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = currentDate.toLocaleDateString('ru-RU', options);
+            
+            // Обновляем отображение диапазона недели
+            const weekRange = getWeekRange(currentDate);
+            document.getElementById('weekRange').textContent = `Неделя: ${formatDate(weekRange.start)} - ${formatDate(weekRange.end)}`;
+            
+            // Обновляем заголовок расписания
+            document.getElementById('scheduleTitle').textContent = `Расписание на ${daysOfWeek[currentDay]}`;
+        }
 
-    function saveLesson(){
-      const lesson = scheduleData[currentDay][currentLessonIndex];
-      lesson.homework = document.getElementById("homework").value;
-      lesson.deadline = document.getElementById("deadline").value;
-      lesson.grade = document.getElementById("grade").value;
-      localStorage.setItem("schedule", JSON.stringify(scheduleData));
-      closeModal();
-      renderSchedule();
-    }
+        // Отрисовка вкладок дней
+        function renderDaysTabs() {
+            const daysTabsContainer = document.getElementById('daysTabs');
+            daysTabsContainer.innerHTML = '';
+            
+            daysOfWeek.forEach((day, index) => {
+                const tab = document.createElement('div');
+                tab.className = `day-tab ${index === currentDay ? 'active' : ''}`;
+                tab.textContent = day;
+                
+                tab.addEventListener('click', () => {
+                    currentDay = index;
+                    updateUI();
+                });
+                
+                daysTabsContainer.appendChild(tab);
+            });
+        }
 
-    // Для совместимости с GitHub Pages
-    window.toggleEditMode = toggleEditMode;
-    window.deleteSelected = deleteSelected;
-    window.addLesson = addLesson;
-    window.resetData = resetData;
-    window.openModal = openModal;
-    window.closeModal = closeModal;
-    window.saveLesson = saveLesson;
-  </script>
-</body>
-</html>
+        // Отрисовка уроков
+        function renderLessons() {
+            const lessonsContainer = document.getElementById('lessonsContainer');
+            lessonsContainer.innerHTML = '';
+            
+            const currentDayName = daysOfWeek[currentDay];
+            const lessons = fixedSchedule[currentDayName] || [];
+            const homeworkData = loadHomeworkData();
+            const dayData = homeworkData[currentDayName] || {};
+            
+            if (lessons.length === 0) {
+                lessonsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-book-open"></i>
+                        <h3>Уроков нет</h3>
+                        <p>В этот день уроки не предусмотрены</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            lessons.forEach((lesson, index) => {
+                const lessonCard = document.createElement('div');
+                lessonCard.className = 'lesson-card';
+                
+                const lessonKey = `${lesson.number}_${lesson.name}`;
+                const homework = dayData[lessonKey] || { text: '', completed: false };
+                
+                lessonCard.innerHTML = `
+                    <div class="lesson-number">${lesson.number}</div>
+                    <div class="lesson-name">${lesson.name}</div>
+                    <div class="lesson-teacher">${lesson.teacher}</div>
+                    
+                    <div class="homework-section">
+                        <label class="homework-label">Домашнее задание:</label>
+                        <input type="text" class="homework-input" data-key="${lessonKey}" 
+                               placeholder="Запишите домашнее задание..." value="${homework.text}">
+                        
+                        <div class="completed-section">
+                            <label class="checkbox-label">
+                                <input type="checkbox" class="checkbox-input" data-key="${lessonKey}" 
+                                      ${homework.completed ? 'checked' : ''}>
+                                Выполнено
+                            </label>
+                        </div>
+                    </div>
+                `;
+                
+                lessonsContainer.appendChild(lessonCard);
+            });
+            
+            // Добавляем обработчики событий для полей ввода
+            document.querySelectorAll('.homework-input').forEach(input => {
+                input.addEventListener('change', saveHomework);
+            });
+            
+            document.querySelectorAll('.checkbox-input').forEach(checkbox => {
+                checkbox.addEventListener('change', saveHomework);
+            });
+        }
+
+        // Сохранение домашнего задания
+        function saveHomework(e) {
+            const key = e.target.dataset.key;
+            const homeworkData = loadHomeworkData();
+            const currentDayName = daysOfWeek[currentDay];
+            
+            if (!homeworkData[currentDayName]) {
+                homeworkData[currentDayName] = {};
+            }
+            
+            if (!homeworkData[currentDayName][key]) {
+                homeworkData[currentDayName][key] = { text: '', completed: false };
+            }
+            
+            if (e.target.classList.contains('homework-input')) {
+                homeworkData[currentDayName][key].text = e.target.value;
+            } else if (e.target.classList.contains('checkbox-input')) {
+                homeworkData[currentDayName][key].completed = e.target.checked;
+            }
+            
+            saveHomeworkData(homeworkData);
+        }
+
+        // Навигация п
