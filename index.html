@@ -6,14 +6,20 @@
   <title>Электронный дневник</title>
   <style>
     /* Общий стиль */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
-      font-family: 'Inter', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
       background: linear-gradient(180deg, #1e1e2f, #2a2a40);
       color: #fff;
       overflow-x: hidden;
+      touch-action: manipulation;
     }
 
     header {
@@ -26,6 +32,9 @@
       border-bottom-left-radius: 16px;
       border-bottom-right-radius: 16px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
     .days {
@@ -34,10 +43,16 @@
       background: #2f2f47;
       padding: 0.5rem;
       box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .days::-webkit-scrollbar {
+      display: none;
     }
 
     .day {
-      flex: 1;
+      flex: 0 0 auto;
+      min-width: 120px;
       text-align: center;
       padding: 0.6rem;
       margin: 0 0.3rem;
@@ -57,7 +72,7 @@
 
     .schedule {
       padding: 1rem;
-      padding-bottom: 8rem; /* запас под нижнюю панель */
+      padding-bottom: 8rem;
     }
 
     .lesson {
@@ -87,9 +102,13 @@
       right: 12px;
       width: 20px;
       height: 20px;
-      accent-color: #4facfe; /* красивый цвет галочек */
+      accent-color: #4facfe;
       transform: scale(1.3);
       cursor: pointer;
+    }
+
+    .hidden {
+      display: none !important;
     }
 
     /* Нижняя панель */
@@ -120,6 +139,8 @@
       transition: 0.2s;
       text-align: center;
       white-space: nowrap;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     .edit-btn { background: linear-gradient(135deg,#4facfe,#00f2fe); }
@@ -127,41 +148,58 @@
     .add-btn { background: #27ae60; }
     .reset-btn { background: #7f8c8d; }
 
-    .action-btn:active { transform: scale(0.95); }
+    .action-btn:active { 
+      transform: scale(0.95); 
+      opacity: 0.9;
+    }
 
     /* Модальное окно */
     .modal {
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      top: 0; 
+      left: 0;
+      width: 100%; 
+      height: 100%;
       background: rgba(0,0,0,0.6);
       display: none;
       justify-content: center;
       align-items: center;
       z-index: 1000;
+      padding: 1rem;
     }
+    
     .modal-content {
       background: #2f2f47;
       padding: 1.2rem;
       border-radius: 16px;
-      width: 90%;
-      max-height: 80%;
+      width: 100%;
+      max-width: 500px;
+      max-height: 80vh;
       overflow-y: auto;
       box-shadow: 0 4px 15px rgba(0,0,0,0.5);
       color: white;
     }
+    
     .modal-content h3 {
       margin-top: 0;
+      margin-bottom: 1rem;
     }
-    input, textarea {
+    
+    .modal-input {
       width: 100%;
-      padding: 0.6rem;
+      padding: 0.8rem;
       margin: 0.5rem 0;
       border: none;
       border-radius: 8px;
       font-size: 1rem;
+      background: #3a3a55;
+      color: white;
     }
-    textarea { resize: none; min-height: 80px; }
+    
+    textarea.modal-input { 
+      resize: vertical; 
+      min-height: 100px;
+    }
 
     .close-btn {
       background: #e74c3c;
@@ -170,13 +208,27 @@
       border-radius: 8px;
       color: white;
       cursor: pointer;
+      margin-top: 1rem;
       float: right;
     }
 
-    /* Убираем синюю подсветку на мобилках */
-    button, input, textarea {
-      outline: none !important;
-      -webkit-tap-highlight-color: transparent;
+    /* Адаптивность */
+    @media (max-width: 480px) {
+      header {
+        font-size: 1.3rem;
+        padding: 0.8rem;
+      }
+      
+      .day {
+        min-width: 100px;
+        padding: 0.5rem;
+        font-size: 0.9rem;
+      }
+      
+      .action-btn {
+        padding: 0.6rem;
+        font-size: 0.8rem;
+      }
     }
   </style>
 </head>
@@ -187,25 +239,28 @@
 
   <!-- Панель кнопок -->
   <div class="action-bar">
-    <button id="editBtn" class="action-btn edit-btn" onclick="toggleEditMode()">✏️ Редактировать</button>
-    <button id="deleteBtn" class="action-btn delete-btn hidden" onclick="deleteSelected()">🗑 Удалить</button>
-    <button id="addBtn" class="action-btn add-btn hidden" onclick="addLesson()">➕ Добавить</button>
-    <button id="resetBtn" class="action-btn reset-btn" onclick="resetData()">♻️ Сброс</button>
+    <button id="editBtn" class="action-btn edit-btn">✏️ Редактировать</button>
+    <button id="deleteBtn" class="action-btn delete-btn hidden">🗑 Удалить</button>
+    <button id="addBtn" class="action-btn add-btn hidden">➕ Добавить</button>
+    <button id="resetBtn" class="action-btn reset-btn">♻️ Сброс</button>
   </div>
 
   <!-- Модальное окно -->
   <div class="modal" id="modal">
     <div class="modal-content">
-      <button class="close-btn" onclick="closeModal()">Закрыть</button>
       <h3 id="modalTitle"></h3>
-      <textarea id="homework" placeholder="Домашнее задание"></textarea>
-      <input type="date" id="deadline">
-      <input type="number" id="grade" placeholder="Оценка (необязательно)">
-      <button class="action-btn edit-btn" onclick="saveLesson()">Сохранить</button>
+      <textarea id="homework" class="modal-input" placeholder="Домашнее задание"></textarea>
+      <input type="date" id="deadline" class="modal-input">
+      <input type="number" id="grade" class="modal-input" placeholder="Оценка (необязательно)" min="1" max="5">
+      <div style="display: flex; justify-content: space-between; margin-top: 1rem;">
+        <button class="close-btn" onclick="closeModal()">Закрыть</button>
+        <button class="action-btn edit-btn" onclick="saveLesson()">Сохранить</button>
+      </div>
     </div>
   </div>
 
   <script>
+    // Основные переменные
     const daysOfWeek = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
 
     const defaultSchedule = {
@@ -224,19 +279,46 @@
       "Суббота": []
     };
 
-    let scheduleData = JSON.parse(localStorage.getItem("schedule")) || defaultSchedule;
-    let currentDay = daysOfWeek[0];
+    let scheduleData = JSON.parse(localStorage.getItem("schedule")) || JSON.parse(JSON.stringify(defaultSchedule));
+    let currentDay = new Date().getDay() - 1;
+    currentDay = currentDay < 0 ? 0 : currentDay; // Если воскресенье, показываем понедельник
+    currentDay = daysOfWeek[currentDay];
     let editMode = false;
     let currentLessonIndex = null;
+
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', function() {
+      initApp();
+    });
+
+    function initApp() {
+      // Назначаем обработчики событий
+      document.getElementById('editBtn').addEventListener('click', toggleEditMode);
+      document.getElementById('deleteBtn').addEventListener('click', deleteSelected);
+      document.getElementById('addBtn').addEventListener('click', addLesson);
+      document.getElementById('resetBtn').addEventListener('click', resetData);
+      
+      // Закрытие модального окна по клику вне его
+      document.getElementById('modal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+      });
+      
+      renderDays();
+      renderSchedule();
+    }
 
     function renderDays(){
       const daysContainer = document.getElementById("days");
       daysContainer.innerHTML = "";
       daysOfWeek.forEach(day => {
         const div = document.createElement("div");
-        div.className = "day" + (day===currentDay ? " active":"");
+        div.className = "day" + (day === currentDay ? " active" : "");
         div.textContent = day;
-        div.onclick = ()=>{currentDay=day; renderDays(); renderSchedule();};
+        div.addEventListener('click', () => {
+          currentDay = day; 
+          renderDays(); 
+          renderSchedule();
+        });
         daysContainer.appendChild(div);
       });
     }
@@ -244,10 +326,24 @@
     function renderSchedule(){
       const container = document.getElementById("schedule");
       container.innerHTML = "";
-      scheduleData[currentDay].forEach((lesson,i)=>{
+      
+      if (scheduleData[currentDay].length === 0) {
+        container.innerHTML = '<div class="lesson"><h4>Нет уроков</h4><small>Добавьте уроки через режим редактирования</small></div>';
+        return;
+      }
+      
+      scheduleData[currentDay].forEach((lesson, i) => {
         const div = document.createElement("div");
         div.className = "lesson" + (editMode ? " edit-mode" : "");
-        div.innerHTML = `<h4>${i+1}. ${lesson.name}</h4><small>${lesson.teacher||""}</small>`;
+        
+        let lessonHTML = `<h4>${i+1}. ${lesson.name}</h4>`;
+        if (lesson.teacher) lessonHTML += `<small>${lesson.teacher}</small>`;
+        if (lesson.homework) lessonHTML += `<br><small>ДЗ: ${lesson.homework}</small>`;
+        if (lesson.deadline) lessonHTML += `<br><small>Срок: ${formatDate(lesson.deadline)}</small>`;
+        if (lesson.grade) lessonHTML += `<br><small>Оценка: ${lesson.grade}</small>`;
+        
+        div.innerHTML = lessonHTML;
+        
         if(editMode){
           const checkbox = document.createElement("input");
           checkbox.type = "checkbox";
@@ -255,10 +351,16 @@
           checkbox.dataset.index = i;
           div.appendChild(checkbox);
         } else {
-          div.onclick = ()=>openModal(i);
+          div.addEventListener('click', () => openModal(i));
         }
         container.appendChild(div);
       });
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('ru-RU');
     }
 
     function toggleEditMode(){
@@ -270,10 +372,20 @@
     }
 
     function deleteSelected(){
-      if(!confirm("Удалить выбранные уроки?")) return;
       const checkboxes = document.querySelectorAll(".edit-checkbox:checked");
+      if (checkboxes.length === 0) {
+        alert("Выберите уроки для удаления");
+        return;
+      }
+      
+      if(!confirm(`Удалить ${checkboxes.length} выбранных уроков?`)) return;
+      
       const indices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.index));
-      scheduleData[currentDay] = scheduleData[currentDay].filter((_,i)=>!indices.includes(i));
+      // Удаляем в обратном порядке, чтобы индексы не сбивались
+      indices.sort((a, b) => b - a).forEach(index => {
+        scheduleData[currentDay].splice(index, 1);
+      });
+      
       localStorage.setItem("schedule", JSON.stringify(scheduleData));
       renderSchedule();
     }
@@ -281,14 +393,14 @@
     function addLesson(){
       const name = prompt("Введите название урока:");
       if(!name) return;
-      const teacher = prompt("Введите учителя:");
+      const teacher = prompt("Введите учителя (необязательно):") || "";
       scheduleData[currentDay].push({name, teacher});
       localStorage.setItem("schedule", JSON.stringify(scheduleData));
       renderSchedule();
     }
 
     function resetData(){
-      if(confirm("Сбросить расписание к дефолту?")){
+      if(confirm("Сбросить всё расписание к начальному состоянию? Все ваши данные будут удалены.")){
         scheduleData = JSON.parse(JSON.stringify(defaultSchedule));
         localStorage.setItem("schedule", JSON.stringify(scheduleData));
         renderDays();
@@ -300,9 +412,9 @@
       currentLessonIndex = index;
       const lesson = scheduleData[currentDay][index];
       document.getElementById("modalTitle").textContent = lesson.name;
-      document.getElementById("homework").value = lesson.homework||"";
-      document.getElementById("deadline").value = lesson.deadline||"";
-      document.getElementById("grade").value = lesson.grade||"";
+      document.getElementById("homework").value = lesson.homework || "";
+      document.getElementById("deadline").value = lesson.deadline || "";
+      document.getElementById("grade").value = lesson.grade || "";
       document.getElementById("modal").style.display = "flex";
     }
 
@@ -320,8 +432,14 @@
       renderSchedule();
     }
 
-    renderDays();
-    renderSchedule();
+    // Для совместимости с GitHub Pages
+    window.toggleEditMode = toggleEditMode;
+    window.deleteSelected = deleteSelected;
+    window.addLesson = addLesson;
+    window.resetData = resetData;
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+    window.saveLesson = saveLesson;
   </script>
 </body>
 </html>
