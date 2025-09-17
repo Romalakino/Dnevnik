@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📘 Электронный дневник</title>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #1a1f3c, #2e3566);
+      color: #eee;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button { outline: none; border: none; }
+    header {
+      background: linear-gradient(135deg, #6a11cb, #2575fc);
+      padding: 1.2rem;
+      text-align: center;
+      color: white;
+      font-size: 1.8rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+      border-bottom-left-radius: 16px;
+      border-bottom-right-radius: 16px;
+    }
+    .days {
+      display: flex;
+      overflow-x: auto;
+      padding: 0.6rem;
+      margin: 0.8rem;
+      background: rgba(255,255,255,0.08);
+      border-radius: 12px;
+      backdrop-filter: blur(6px);
+    }
+    .day {
+      flex: 1;
+      padding: 0.6rem;
+      text-align: center;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.3s;
+      color: #ccc;
+      min-width: 100px;
+    }
+    .day.active {
+      background: linear-gradient(135deg, #2575fc, #6a11cb);
+      color: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .schedule {
+      padding: 1rem;
+      padding-bottom: 6rem; /* Отступ снизу для видимости последнего предмета */
+    }
+    .lesson {
+      background: rgba(255,255,255,0.08);
+      margin-bottom: 1rem;
+      padding: 1rem;
+      border-radius: 16px;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.25s, background 0.3s;
+    }
+    .lesson:hover { transform: translateY(-3px); }
+    .lesson h4 {
+      margin: 0 0 0.4rem 0;
+      font-size: 1.1rem;
+      color: #fff;
+    }
+    .lesson small { color: #aaa; }
+    .lesson.edit-mode { background: rgba(255,255,255,0.2); }
+
+    /* Кастомные чекбоксы */
+    .edit-checkbox {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      appearance: none;
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border: 2px solid #ccc;
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+    .edit-checkbox:checked {
+      background: linear-gradient(135deg, #2575fc, #6a11cb);
+      border-color: #2575fc;
+      box-shadow: 0 0 6px rgba(37,117,252,0.6);
+    }
+    .edit-checkbox:checked::after {
+      content: "✔";
+      color: white;
+      font-size: 14px;
+      position: absolute;
+      top: 1px;
+      left: 4px;
+    }
+
+    /* Нижняя панель кнопок */
+    .action-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(20,20,30,0.95);
+      display: flex;
+      justify-content: space-around;
+      padding: 0.6rem 0.4rem;
+      box-shadow: 0 -3px 10px rgba(0,0,0,0.4);
+    }
+    .action-btn {
+      flex: 1;
+      margin: 0 0.3rem;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #2575fc, #6a11cb);
+      color: white;
+      font-weight: 600;
+      padding: 0.7rem;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .action-btn:active { transform: scale(0.95); }
+    .red { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
+    .green { background: linear-gradient(135deg, #28c76f, #20a85c); }
+    .gray { background: linear-gradient(135deg, #888, #666); }
+    .hidden { display: none; }
+
+    /* Модалка */
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: #2a2f4a;
+      padding: 1rem;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 400px;
+      color: white;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .modal-content h3 { margin-top: 0; }
+    input, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+    }
+    textarea { resize: vertical; }
+    .close-btn {
+      background: #f44336;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      float: right;
+    }
+  </style>
+</head>
+<body>
+  <header>📘 Электронный дневник</header>
+  <div class="days" id="days"></div>
+  <div class="schedule" id="schedule"></div>
+
+  <!-- Нижняя панель -->
+  <div class="action-bar">
+    <button id="editBtn" class="action-btn">✏️ Редактировать</button>
+    <button id="deleteBtn" class="action-btn red hidden">🗑 Удалить</button>
+    <button id="addBtn" class="action-btn green hidden">＋ Добавить</button>
+    <button id="resetBtn" class="action-btn gray">♻ Сброс</button>
+  </div>
+
+  <!-- Модалка -->
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <button class="close-btn" onclick="closeModal()">Закрыть</button>
+      <h3 id="modalTitle"></h3>
+      <textarea id="homework" placeholder="Домашнее задание"></textarea>
+      <input type="date" id="deadline">
+      <input type="number" id="grade" placeholder="Оценка (необязательно)">
+      <button onclick="saveLesson()" class="action-btn green">Сохранить</button>
+    </div>
+  </div>
+
+  <script>
+    const daysOfWeek = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
+    const defaultSchedule = {
+      "Понедельник":[{name:"Гос. язык Татарстан",teacher:"Яруллина Г.Р."}],
+      "Вторник":[{name:"Русский язык",teacher:"Вагапова А.Р."}],
+      "Среда":[{name:"Английский язык",teacher:"Кузнецова Н.В."}],
+      "Четверг":[{name:"История",teacher:"Башкирова Л.М."}],
+      "Пятница":[{name:"Алгебра",teacher:"Идиятуллина А.М."}],
+      "Суббота":[]
+    };
+    let scheduleData = JSON.parse(localStorage.getItem("schedule")) || defaultSchedule;
+    let currentDay = daysOfWeek[0];
+    let editMode = false;
+    let currentLessonIndex = null;
+
+    function renderDays(){
+      const c=document.getElementById("days");
+      c.innerHTML="";
+      daysOfWeek.forEach(day=>{
+        const div=document.createElement("div");
+        div.className="day"+(day===currentDay?" active":"");
+        div.textContent=day;
+        div.onclick=()=>{currentDay=day;renderDays();renderSchedule();};
+        c.appendChild(div);
+      });
+    }
+
+    function renderSchedule(){
+      const container=document.getElementById("schedule");
+      container.innerHTML="";
+      scheduleData[currentDay].forEach((lesson,i)=>{
+        const div=document.createElement("div");
+        div.className="lesson"+(editMode?" edit-mode":"");
+        div.innerHTML=`<h4>${i+1}. ${lesson.name}</h4><small>${lesson.teacher||""}</small>`;
+        if(editMode){
+          const cb=document.createElement("input");
+          cb.type="checkbox"; cb.className="edit-checkbox"; cb.dataset.index=i;
+          div.appendChild(cb);
+        } else {
+          div.onclick=()=>openModal(i);
+        }
+        container.appendChild(div);
+      });
+    }
+
+    function openModal(index){
+      currentLessonIndex=index;
+      const lesson=scheduleData[currentDay][index];
+      document.getElementById("modalTitle").textContent=lesson.name;
+      document.getElementById("homework").value=lesson.homework||"";
+      document.getElementById("deadline").value=lesson.deadline||"";
+      document.getElementById("grade").value=lesson.grade||"";
+      document.getElementById("modal").style.display="flex";
+    }
+    function closeModal(){ document.getElementById("modal").style.display="none"; }
+    function saveLesson(){
+      const lesson=scheduleData[currentDay][currentLessonIndex];
+      lesson.homework=document.getElementById("homework").value;
+      lesson.deadline=document.getElementById("deadline").value;
+      lesson.grade=document.getElementById("grade").value;
+      localStorage.setItem("schedule",JSON.stringify(scheduleData));
+      closeModal(); renderSchedule();
+    }
+
+    function toggleEditMode(){
+      editMode=!editMode;
+      document.getElementById("deleteBtn").classList.toggle("hidden",!editMode);
+      document.getElementById("addBtn").classList.toggle("hidden",!editMode);
+      renderSchedule();
+    }
+    function deleteSelected(){
+      const boxes=document.querySelectorAll(".edit-checkbox:checked");
+      if(boxes.length===0)return alert("Ничего не выбрано!");
+      if(!confirm("Удалить выбранные уроки?"))return;
+      const idx=Array.from(boxes).map(b=>parseInt(b.dataset.index));
+      scheduleData[currentDay]=scheduleData[currentDay].filter((_,i)=>!idx.includes(i));
+      localStorage.setItem("schedule",JSON.stringify(scheduleData));
+      renderSchedule();
+    }
+    function addLesson(){
+      const name=prompt("Введите название урока:"); if(!name)return;
+      const teacher=prompt("Введите фамилию учителя:")||"";
+      scheduleData[currentDay].push({name,teacher});
+      localStorage.setItem("schedule",JSON.stringify(scheduleData));
+      renderSchedule();
+    }
+    function resetSchedule(){
+      if(confirm("Сбросить расписание к исходному?")){
+        scheduleData=JSON.parse(JSON.stringify(defaultSchedule));
+        localStorage.setItem("schedule",JSON.stringify(scheduleData));
+        renderDays(); renderSchedule();
+      }
+    }
+
+    document.getElementById("editBtn").onclick=toggleEditMode;
+    document.getElementById("deleteBtn").onclick=deleteSelected;
+    document.getElementById("addBtn").onclick=addLesson;
+    document.getElementById("resetBtn").onclick=resetSchedule;
+
+    renderDays(); renderSchedule();
+  </script>
+</body>
+</html>
